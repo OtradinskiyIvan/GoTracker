@@ -30,8 +30,11 @@ func (storage *MemoryStorage) CreateTask(asignee, author uuid.UUID, body, title 
 	_, ok1 := storage.users[author]
 	_, ok2 := storage.users[asignee]
 
-	if !(ok1 && ok2) {
-		return Task{}, fmt.Errorf("Cannot find asignee and author users")
+	if !(ok1) {
+		return Task{}, fmt.Errorf("Cannot find the author %s", author)
+	}
+	if !(ok2) {
+		return Task{}, fmt.Errorf("Cannot find the asignee %s", asignee)
 	}
 	newTask := Task{
 		id:          uuid.New(),
@@ -109,13 +112,16 @@ func (storage *MemoryStorage) GetUser(uid uuid.UUID) (User, error) {
 }
 
 func (storage *MemoryStorage) UpdateUser(uid uuid.UUID, username string) (User, error) {
-	_, reserved := storage.reserved_usernames[username]
-	if reserved {
-		return User{}, fmt.Errorf("This username is already in use")
+	if len(username) == 0 {
+		return User{}, fmt.Errorf("Username cannot be empty")
 	}
 	reqUser, ok := storage.users[uid]
 	if !ok {
-		return reqUser, fmt.Errorf("user %s not found", uid)
+		return User{}, fmt.Errorf("user %s not found", uid)
+	}
+	_, reserved := storage.reserved_usernames[username]
+	if reserved && (username != reqUser.username) {
+		return reqUser, fmt.Errorf("This username is already in use")
 	}
 
 	updUser := User{
