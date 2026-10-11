@@ -13,15 +13,16 @@ type Storage interface {
 	UpdateTask(tuid, asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
 	DeleteTask(tuid uuid.UUID) error
 	// users
-	CreateUser(username string) (Task, error)
-	GetUser(uuid uuid.UUID) (Task, error)
-	UpdateUser(uuid uuid.UUID, username string) (Task, error)
-	DeleteUser(uuid uuid.UUID) error
+	CreateUser(username string) (User, error)
+	GetUser(uid uuid.UUID) (User, error)
+	UpdateUser(uid uuid.UUID, username string) (User, error)
+	DeleteUser(uid uuid.UUID) error
 }
 
 type MemoryStorage struct {
-	users map[uuid.UUID]User
-	tasks map[uuid.UUID]Task
+	users              map[uuid.UUID]User
+	tasks              map[uuid.UUID]Task
+	reserved_usernames map[string]bool
 }
 
 // tasks
@@ -83,41 +84,56 @@ func (storage *MemoryStorage) DeleteTask(tuid uuid.UUID) error {
 
 // users
 func (storage *MemoryStorage) CreateUser(username string) (User, error) {
+	if len(username) == 0 {
+		return User{}, fmt.Errorf("Username cant be empty")
+	}
+	_, reserved := storage.reserved_usernames[username]
+	if reserved {
+		return User{}, fmt.Errorf("This username is already in use")
+	}
 	newUser := User{
 		id:       uuid.New(),
 		username: username,
 	}
 	storage.users[newUser.id] = newUser
+	storage.reserved_usernames[username] = true
 	return newUser, nil
 }
 
-func (storage *MemoryStorage) GetUser(uuid uuid.UUID) (User, error) {
-	_, ok := storage.tasks[uuid]
+func (storage *MemoryStorage) GetUser(uid uuid.UUID) (User, error) {
+	_, ok := storage.users[uid]
 	if !ok {
-		return User{}, fmt.Errorf("task %s not found", uuid)
+		return User{}, fmt.Errorf("user %s not found", uid)
 	}
-	return storage.users[uuid], nil
+	return storage.users[uid], nil
 }
 
-func (storage *MemoryStorage) UpdateUser(uuid uuid.UUID, username string) (User, error) {
-	reqUser, ok := storage.users[uuid]
+func (storage *MemoryStorage) UpdateUser(uid uuid.UUID, username string) (User, error) {
+	_, reserved := storage.reserved_usernames[username]
+	if reserved {
+		return User{}, fmt.Errorf("This username is already in use")
+	}
+	reqUser, ok := storage.users[uid]
 	if !ok {
-		return reqUser, fmt.Errorf("task %s not found", tuid)
+		return reqUser, fmt.Errorf("user %s not found", uid)
 	}
 
 	updUser := User{
 		id:       reqUser.id,
 		username: username,
 	}
-	storage.users[uuid] = updUser
+	storage.users[uid] = updUser
+	delete(storage.reserved_usernames, reqUser.username)
+	storage.reserved_usernames[username] = true
 	return updUser, nil
 }
 
-func (storage *MemoryStorage) DeleteUser(uuid uuid.UUID) error {
-	_, ok := storage.tasks[uuid]
+func (storage *MemoryStorage) DeleteUser(uid uuid.UUID) error {
+	delUser, ok := storage.users[uid]
 	if !ok {
-		return fmt.Errorf("task %s not found", uuid)
+		return fmt.Errorf("user %s not found", uid)
 	}
-	delete(storage.tasks, uuid)
+	delete(storage.users, uid)
+	delete(storage.reserved_usernames, delUser.username)
 	return nil
 }
