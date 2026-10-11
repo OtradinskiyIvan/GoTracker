@@ -12,7 +12,7 @@ type Task struct {
 	title       string
 	body        string
 	priority    int
-	asignee     uuid.UUID
+	assignee    uuid.UUID
 	author      uuid.UUID
 	storypoints int
 }

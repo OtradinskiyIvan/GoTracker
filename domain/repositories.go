@@ -8,9 +8,9 @@ import (
 
 type Storage interface {
 	//tasks
-	CreateTask(asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
+	CreateTask(assignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
 	GetTask(tuid uuid.UUID) (Task, error)
-	UpdateTask(tuid, asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
+	UpdateTask(tuid, assignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
 	DeleteTask(tuid uuid.UUID) error
 	// users
 	CreateUser(username string) (User, error)
@@ -20,27 +20,27 @@ type Storage interface {
 }
 
 type MemoryStorage struct {
-	users              map[uuid.UUID]User
-	tasks              map[uuid.UUID]Task
-	reserved_usernames map[string]bool
+	users             map[uuid.UUID]User
+	tasks             map[uuid.UUID]Task
+	reservedUsernames map[string]bool
 }
 
 // tasks
-func (storage *MemoryStorage) CreateTask(asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error) {
+func (storage *MemoryStorage) CreateTask(assignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error) {
 	_, ok1 := storage.users[author]
-	_, ok2 := storage.users[asignee]
+	_, ok2 := storage.users[assignee]
 
 	if !(ok1) {
 		return Task{}, fmt.Errorf("Cannot find the author %s", author)
 	}
 	if !(ok2) {
-		return Task{}, fmt.Errorf("Cannot find the asignee %s", asignee)
+		return Task{}, fmt.Errorf("Cannot find the assignee %s", assignee)
 	}
 	newTask := Task{
 		id:          uuid.New(),
 		body:        body,
 		title:       title,
-		asignee:     asignee,
+		assignee:    assignee,
 		author:      author,
 		priority:    priority,
 		storypoints: storypoints,
@@ -67,7 +67,7 @@ func (storage *MemoryStorage) UpdateTask(tuid uuid.UUID, body, title string, pri
 		id:          reqTask.id,
 		body:        body,
 		title:       title,
-		asignee:     reqTask.asignee,
+		assignee:    reqTask.assignee,
 		author:      reqTask.author,
 		priority:    priority,
 		storypoints: storypoints,
@@ -90,7 +90,7 @@ func (storage *MemoryStorage) CreateUser(username string) (User, error) {
 	if len(username) == 0 {
 		return User{}, fmt.Errorf("Username cant be empty")
 	}
-	_, reserved := storage.reserved_usernames[username]
+	_, reserved := storage.reservedUsernames[username]
 	if reserved {
 		return User{}, fmt.Errorf("This username is already in use")
 	}
@@ -99,7 +99,7 @@ func (storage *MemoryStorage) CreateUser(username string) (User, error) {
 		username: username,
 	}
 	storage.users[newUser.id] = newUser
-	storage.reserved_usernames[username] = true
+	storage.reservedUsernames[username] = true
 	return newUser, nil
 }
 
@@ -119,7 +119,7 @@ func (storage *MemoryStorage) UpdateUser(uid uuid.UUID, username string) (User, 
 	if !ok {
 		return User{}, fmt.Errorf("user %s not found", uid)
 	}
-	_, reserved := storage.reserved_usernames[username]
+	_, reserved := storage.reservedUsernames[username]
 	if reserved && (username != reqUser.username) {
 		return reqUser, fmt.Errorf("This username is already in use")
 	}
@@ -129,8 +129,8 @@ func (storage *MemoryStorage) UpdateUser(uid uuid.UUID, username string) (User, 
 		username: username,
 	}
 	storage.users[uid] = updUser
-	delete(storage.reserved_usernames, reqUser.username)
-	storage.reserved_usernames[username] = true
+	delete(storage.reservedUsernames, reqUser.username)
+	storage.reservedUsernames[username] = true
 	return updUser, nil
 }
 
@@ -140,6 +140,6 @@ func (storage *MemoryStorage) DeleteUser(uid uuid.UUID) error {
 		return fmt.Errorf("user %s not found", uid)
 	}
 	delete(storage.users, uid)
-	delete(storage.reserved_usernames, delUser.username)
+	delete(storage.reservedUsernames, delUser.username)
 	return nil
 }
