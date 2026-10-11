@@ -13,10 +13,10 @@ type Storage interface {
 	UpdateTask(tuid, asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
 	DeleteTask(tuid uuid.UUID) error
 	// users
-	CreateUser(asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
-	GetUser(tuid uuid.UUID) (Task, error)
-	UpdateUser(tuid, asignee, author uuid.UUID, body, title string, priority, storypoints int) (Task, error)
-	DeleteUser(tuid uuid.UUID) error
+	CreateUser(username string) (Task, error)
+	GetUser(uuid uuid.UUID) (Task, error)
+	UpdateUser(uuid uuid.UUID, username string) (Task, error)
+	DeleteUser(uuid uuid.UUID) error
 }
 
 type MemoryStorage struct {
@@ -109,7 +109,7 @@ func (storage *MemoryStorage) UpdateUser(uuid uuid.UUID, username string) (User,
 		id:       reqUser.id,
 		username: username,
 	}
-	storage.tasks[uuid] = updUser
+	storage.users[uuid] = updUser
 	return updUser, nil
 }
 
