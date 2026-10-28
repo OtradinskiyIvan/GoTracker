@@ -48,7 +48,6 @@ func main() {
 	fmt.Printf("get ivan: %+v err: %v\n", got, err)
 	fmt.Printf("match: %v\n", got == ivan)
 
-	// note: UpdateUser is BROKEN right now — this will print "not found" even though ivan exists
 	renamed, err := store.UpdateUser(ivan.ID, "ivan2")
 	fmt.Printf("rename ivan: %+v err: %v\n", renamed, err)
 
